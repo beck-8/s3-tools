@@ -87,6 +87,7 @@ func main() {
 			&cli.StringFlag{
 				Name:    "filelist",
 				EnvVars: []string{"filelist"},
+				Usage:   "specify the list to be migrated, one object per line",
 			},
 			&cli.IntFlag{
 				Name:    "concurrent",
@@ -96,6 +97,7 @@ func main() {
 			&cli.BoolFlag{
 				Name:    "watch",
 				EnvVars: []string{"watch"},
+				Usage:   "loop to check if there is new data",
 			},
 			&cli.BoolFlag{
 				Name:    "remove",
@@ -209,7 +211,6 @@ func action(cctx *cli.Context) error {
 				}
 				lines := strings.Split(strings.TrimSpace(string(content)), "\n")
 				for _, key := range lines {
-					fmt.Println(key)
 					objectsCh <- minio.ObjectInfo{Key: key}
 				}
 				return
@@ -246,8 +247,6 @@ func action(cctx *cli.Context) error {
 		if err == nil {
 			log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 			continue
-		} else {
-			log.Println(err)
 		}
 
 		// Start a new worker.
@@ -284,7 +283,6 @@ func action(cctx *cli.Context) error {
 				log.Println(err)
 				return
 			}
-
 			log.Printf("object %s copied to destination bucket %s\n", object.Key, dst_bucket)
 
 			if srcUuid != "" {
