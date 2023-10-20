@@ -203,6 +203,7 @@ func action(cctx *cli.Context) error {
 	objectsCh := make(chan minio.ObjectInfo)
 	go func() {
 		defer close(objectsCh)
+		alreadyJobs := make(map[string]time.Time)
 		for {
 			if cctx.IsSet("filelist") {
 				content, err := os.ReadFile(cctx.String("filelist"))
@@ -216,17 +217,24 @@ func action(cctx *cli.Context) error {
 				return
 			}
 
+			// 每60分钟列出object，48小时内已经派发的任务不会重复派，48小时之前已经派发的任务还会重新派（如果文件已经在目标位置存在不会重新传输）
 			tmpCh := s3SrcClient.ListObjects(ctx, src_bucket, minio.ListObjectsOptions{
 				Prefix:    src_prefix,
 				Recursive: true,
 			})
 			for obj := range tmpCh {
+				if _, ok := alreadyJobs[obj.Key]; ok {
+					continue
+				}
 				objectsCh <- obj
+				alreadyJobs[obj.Key] = time.Now()
 			}
 			if !cctx.Bool("watch") {
 				return
 			}
-			time.Sleep(100 * time.Second)
+			time.Sleep(60 * time.Minute)
+
+			deleteOldEntries(alreadyJobs, 48)
 		}
 
 	}()

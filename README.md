@@ -1,4 +1,13 @@
 # s3-migrate
+## 支持功能
+> 使用域名可自动解析成IPV4随机访问。只允许域名访问的endpoint应使用`--disable_lookup`禁用此功能
+
+- 支持 s3 到 s3 迁移
+- 支持增量迁移（--watch）
+- 支持文件列表迁移（--filelist）
+- 删除源数据（默认关闭）
+- 更改unsealed索引（默认关闭，启动需配置全参数）
+
 ## Usage
 ```
 $ ./s3-migrate -h

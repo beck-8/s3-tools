@@ -26,21 +26,27 @@ func nslookupShuf(input string) string {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	ips, err := net.LookupHost(host)
+	addrs, err := net.LookupIP(host)
 	if err != nil {
 		log.Fatalln(err)
+	}
+	var ipv4Addrs []string
+	for _, addr := range addrs {
+		if ipv4 := addr.To4(); ipv4 != nil {
+			ipv4Addrs = append(ipv4Addrs, ipv4.String())
+		}
 	}
 
 	// 设置随机数种子
 	rand.Seed(time.Now().UnixNano())
 	// 从 IP 列表中随机选择一个 IP
-	randomIndex := rand.Intn(len(ips))
-	randomIP := ips[randomIndex]
+	randomIndex := rand.Intn(len(ipv4Addrs))
+	randomIP := ipv4Addrs[randomIndex]
 	return fmt.Sprintf("%s:%s", randomIP, port)
 
 }
 
-// 根据object key（filename） 返回 abi.SectorID
+// 根据object key（filename），在目标位置声明，在原位置删除
 func changeStorage(object string, srcUuid string, dstUuid string) error {
 	re := regexp.MustCompile(`.*s-(t\d+)-(\d+)`)
 	match := re.FindStringSubmatch(object)
@@ -129,4 +135,13 @@ func changeStorage(object string, srcUuid string, dstUuid string) error {
 	log.Printf("drop %s in %s\n", object, srcUuid)
 
 	return nil
+}
+
+// 超过 hours 时间的数据清理掉
+func deleteOldEntries(m map[string]time.Time, hours int) {
+	for key, val := range m {
+		if time.Since(val) > time.Duration(hours)*time.Hour {
+			delete(m, key)
+		}
+	}
 }
