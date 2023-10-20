@@ -132,7 +132,7 @@ func main() {
 			},
 		},
 		UsageText: `
-src_endpoint and dst_endpoint must use type scheme://domain:port, example http://example.com:80
+src_endpoint and dst_endpoint must use type scheme://domain[:port], example http://example.com[:80]
 `,
 		Action: action,
 	}

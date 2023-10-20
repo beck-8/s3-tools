@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"time"
@@ -22,10 +23,12 @@ func nslookupShuf(input string) string {
 	if disableLookupDomain {
 		return input
 	}
-	host, port, err := net.SplitHostPort(input)
+	parsedURL, err := url.Parse("http://" + input)
 	if err != nil {
 		log.Fatalln(err)
 	}
+	host := parsedURL.Hostname()
+	port := parsedURL.Port()
 	addrs, err := net.LookupIP(host)
 	if err != nil {
 		log.Fatalln(err)
@@ -42,8 +45,12 @@ func nslookupShuf(input string) string {
 	// 从 IP 列表中随机选择一个 IP
 	randomIndex := rand.Intn(len(ipv4Addrs))
 	randomIP := ipv4Addrs[randomIndex]
-	return fmt.Sprintf("%s:%s", randomIP, port)
 
+	if port == "" {
+		return fmt.Sprint(randomIP)
+	} else {
+		return fmt.Sprintf("%s:%s", randomIP, port)
+	}
 }
 
 // 根据object key（filename），在目标位置声明，在原位置删除
