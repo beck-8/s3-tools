@@ -1,6 +1,6 @@
 # s3-migrate
 ## 支持功能
-> 使用域名可自动解析成IPV4随机访问。只允许域名访问的endpoint应使用`--disable_lookup`禁用此功能
+> 使用域名可自动解析成IPV4随机访问。只允许域名访问的endpoint应使用`--disable_lookup`禁用此功能（公网S3服务大部分都需要加此参数，否则会返回乱七八糟的错误）
 
 - 支持 s3 到 s3 迁移
 - 支持增量迁移（--watch）
