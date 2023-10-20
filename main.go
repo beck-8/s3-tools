@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
-	"net"
 	"net/url"
 	"os"
 	"path"
@@ -46,6 +44,12 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
+				Name:     "src_region",
+				EnvVars:  []string{"src_region"},
+				Required: false,
+				Hidden:   true,
+			},
+			&cli.StringFlag{
 				Name:     "src_prefix",
 				EnvVars:  []string{"src_prefix"},
 				Required: true,
@@ -71,6 +75,12 @@ func main() {
 				Required: true,
 			},
 			&cli.StringFlag{
+				Name:     "dst_region",
+				EnvVars:  []string{"dst_region"},
+				Required: false,
+				Hidden:   true,
+			},
+			&cli.StringFlag{
 				Name:    "dst_prefix",
 				EnvVars: []string{"dst_prefix"},
 			},
@@ -92,6 +102,32 @@ func main() {
 				EnvVars: []string{"remove"},
 				Usage:   "delete after completion",
 			},
+			&cli.BoolFlag{
+				Name:    "disable_lookup",
+				EnvVars: []string{"disable_lookup"},
+				Usage:   "disable lookup endpoint domain",
+				Hidden:  true,
+			},
+			&cli.StringFlag{
+				Name:    "src_uuid",
+				EnvVars: []string{"src_uuid"},
+				Usage:   "src storage uuid",
+			},
+			&cli.StringFlag{
+				Name:    "dst_uuid",
+				EnvVars: []string{"dst_uuid"},
+				Usage:   "dst storage uuid",
+			},
+			&cli.StringFlag{
+				Name:    "rpc",
+				EnvVars: []string{"rpc"},
+				Usage:   "miner rpc, http://localhost:2345/rpc/v0",
+			},
+			&cli.StringFlag{
+				Name:    "token",
+				EnvVars: []string{"token"},
+				Usage:   "miner admin token",
+			},
 		},
 		UsageText: `
 src_endpoint and dst_endpoint must use type scheme://domain:port, example http://example.com:80
@@ -107,6 +143,26 @@ src_endpoint and dst_endpoint must use type scheme://domain:port, example http:/
 }
 
 func action(cctx *cli.Context) error {
+
+	src_bucket := cctx.String("src_bucket")
+	src_region := cctx.String("src_region")
+	src_prefix := cctx.String("src_prefix")
+	dst_bucket := cctx.String("dst_bucket")
+	dst_region := cctx.String("dst_region")
+	dst_prefix := cctx.String("dst_prefix")
+	remove := cctx.Bool("remove")
+	disableLookupDomain = cctx.Bool("disable_lookup")
+
+	if cctx.IsSet("src_uuid") || cctx.IsSet("dst_uuid") || cctx.IsSet("rpc") || cctx.IsSet("token") {
+		srcUuid = cctx.String("src_uuid")
+		dstUuid = cctx.String("dst_uuid")
+		rpc = cctx.String("rpc")
+		token = cctx.String("token")
+		if srcUuid == "" || dstUuid == "" || rpc == "" || token == "" {
+			return fmt.Errorf("must srcUuid,dstUuid,rpc,token all set")
+		}
+	}
+
 	// url parse
 	parsedSrc, err := url.Parse(cctx.String("src_endpoint"))
 	if err != nil {
@@ -117,6 +173,7 @@ func action(cctx *cli.Context) error {
 	srcOptions := &minio.Options{
 		Creds:  credentials.NewStaticV4(cctx.String("src_ak"), cctx.String("src_sk"), ""),
 		Secure: src_ssl,
+		Region: src_region,
 	}
 
 	parsedDst, err := url.Parse(cctx.String("dst_endpoint"))
@@ -128,14 +185,8 @@ func action(cctx *cli.Context) error {
 	dstOptions := &minio.Options{
 		Creds:  credentials.NewStaticV4(cctx.String("dst_ak"), cctx.String("dst_sk"), ""),
 		Secure: dst_ssl,
+		Region: dst_region,
 	}
-
-	src_bucket := cctx.String("src_bucket")
-	src_prefix := cctx.String("src_prefix")
-	dst_bucket := cctx.String("dst_bucket")
-	dst_prefix := cctx.String("dst_prefix")
-	fmt.Println(cctx.String("dst_prefix"))
-	remove := cctx.Bool("remove")
 
 	ctx := context.Background()
 	s3SrcClient, err := minio.New(nslookupShuf(src_endpoint), srcOptions)
@@ -185,7 +236,6 @@ func action(cctx *cli.Context) error {
 	workerCh := make(chan struct{}, cctx.Int("concurrent"))
 
 	for object := range objectsCh {
-		log.Println(object.Key)
 		if object.Err != nil {
 			log.Println(object.Err)
 			return object.Err
@@ -228,8 +278,7 @@ func action(cctx *cli.Context) error {
 			}
 			defer reader.Close()
 
-			log.Printf("start upload %s to %s\n", object.Key, dst_bucket)
-			fmt.Println(path.Join(dst_prefix, object.Key))
+			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
 			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{})
 			if err != nil {
 				log.Println(err)
@@ -238,10 +287,18 @@ func action(cctx *cli.Context) error {
 
 			log.Printf("object %s copied to destination bucket %s\n", object.Key, dst_bucket)
 
+			if srcUuid != "" {
+				err := changeStorage(object.Key, srcUuid, dstUuid)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+			}
 			if remove {
 				err = src.RemoveObject(ctx, src_bucket, object.Key, minio.RemoveObjectOptions{})
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				log.Printf("remove %s success\n", object.Key)
 			}
@@ -252,23 +309,4 @@ func action(cctx *cli.Context) error {
 	// Wait for all workers to finish.
 	wg.Wait()
 	return nil
-}
-
-func nslookupShuf(input string) string {
-	host, port, err := net.SplitHostPort(input)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	ips, err := net.LookupHost(host)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	// 设置随机数种子
-	rand.Seed(time.Now().UnixNano())
-	// 从 IP 列表中随机选择一个 IP
-	randomIndex := rand.Intn(len(ips))
-	randomIP := ips[randomIndex]
-	return fmt.Sprintf("%s:%s", randomIP, port)
-
 }

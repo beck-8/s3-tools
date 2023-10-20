@@ -12,4 +12,11 @@ export dst_prefix=
 export watch=1
 export concurrent=1
 export filelist=filelist.txt
+
+# export remove=1
+
+# export src_uuid=
+# export dst_uuid=
+# export rpc=
+# export token=
 ./s3-migrate
