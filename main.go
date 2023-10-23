@@ -246,7 +246,7 @@ func action(cctx *cli.Context) error {
 
 	for object := range objectsCh {
 		if object.Err != nil {
-			log.Println(object.Err)
+			log.Println("ListObjects error:", object.Err)
 			return object.Err
 		}
 
@@ -255,6 +255,9 @@ func action(cctx *cli.Context) error {
 		if err == nil {
 			log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 			continue
+		} else if !strings.Contains(err.Error(), "The specified key does not exist.") {
+			log.Println("StatObject error:", err)
+			return err
 		}
 
 		// Start a new worker.
@@ -280,15 +283,15 @@ func action(cctx *cli.Context) error {
 
 			reader, err := src.GetObject(ctx, src_bucket, object.Key, minio.GetObjectOptions{})
 			if err != nil {
-				log.Println(err)
+				log.Println("GetObject error:", err)
 				return
 			}
 			defer reader.Close()
 
 			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
-			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{})
+			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: 8})
 			if err != nil {
-				log.Println(err)
+				log.Println("PutObject error:", err)
 				return
 			}
 			log.Printf("object %s copied to destination bucket %s\n", object.Key, dst_bucket)
@@ -296,14 +299,14 @@ func action(cctx *cli.Context) error {
 			if srcUuid != "" {
 				err := changeStorage(object.Key, srcUuid, dstUuid)
 				if err != nil {
-					log.Println(err)
+					log.Println("changeStorage error:", err)
 					return
 				}
 			}
 			if remove {
 				err = src.RemoveObject(ctx, src_bucket, object.Key, minio.RemoveObjectOptions{})
 				if err != nil {
-					log.Println(err)
+					log.Println("RemoveObject error:", err)
 					return
 				}
 				log.Printf("remove %s success\n", object.Key)
