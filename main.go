@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/urfave/cli/v2"
@@ -89,6 +90,26 @@ func main() {
 				EnvVars: []string{"filelist"},
 				Usage:   "specify the list to be migrated, one object per line",
 			},
+			&cli.StringFlag{
+				Name:    "PartSize",
+				EnvVars: []string{"PartSize"},
+				Value:   "16MiB",
+			},
+			&cli.UintFlag{
+				Name:    "NumThreads",
+				EnvVars: []string{"NumThreads"},
+				Value:   4,
+			},
+			&cli.BoolFlag{
+				Name:    "DisableMultipart",
+				EnvVars: []string{"DisableMultipart"},
+				Value:   true,
+			},
+			&cli.BoolFlag{
+				Name:    "DisableContentSha256",
+				EnvVars: []string{"DisableContentSha256"},
+				Value:   true,
+			},
 			&cli.IntFlag{
 				Name:    "concurrent",
 				EnvVars: []string{"concurrent"},
@@ -152,8 +173,16 @@ func action(cctx *cli.Context) error {
 	dst_bucket := cctx.String("dst_bucket")
 	dst_region := cctx.String("dst_region")
 	dst_prefix := cctx.String("dst_prefix")
-	remove := cctx.Bool("remove")
+
+	PartSize, err := humanize.ParseBytes(cctx.String("PartSize"))
+	if err != nil {
+		return err
+	}
+	NumThreads := cctx.Uint("NumThreads")
+	DisableMultipart := cctx.Bool("DisableMultipart")
+	DisableContentSha256 := cctx.Bool("DisableContentSha256")
 	disableLookupDomain = cctx.Bool("disable_lookup")
+	remove := cctx.Bool("remove")
 
 	if cctx.IsSet("src_uuid") || cctx.IsSet("dst_uuid") || cctx.IsSet("rpc") || cctx.IsSet("token") {
 		srcUuid = cctx.String("src_uuid")
@@ -289,7 +318,7 @@ func action(cctx *cli.Context) error {
 			defer reader.Close()
 
 			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
-			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{DisableMultipart: false})
+			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: NumThreads, PartSize: PartSize, DisableMultipart: DisableMultipart, DisableContentSha256: DisableContentSha256})
 			if err != nil {
 				log.Println("PutObject error:", err)
 				return
