@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/filecoin-project/go-address"
@@ -18,6 +19,7 @@ import (
 
 var srcUuid, dstUuid, rpc, token string
 var disableLookupDomain bool
+var mutex = &sync.Mutex{}
 
 func nslookupShuf(input string) string {
 	if disableLookupDomain {
@@ -41,7 +43,9 @@ func nslookupShuf(input string) string {
 	}
 
 	// 设置随机数种子
+	mutex.Lock()
 	rand.Seed(time.Now().UnixNano())
+	mutex.Unlock()
 	// 从 IP 列表中随机选择一个 IP
 	randomIndex := rand.Intn(len(ipv4Addrs))
 	randomIP := ipv4Addrs[randomIndex]
