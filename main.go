@@ -101,6 +101,11 @@ func main() {
 				Value:   4,
 			},
 			&cli.BoolFlag{
+				Name:    "EnableMemCache",
+				EnvVars: []string{"EnableMemCache"},
+				Usage:   "after turning it on, it will obviously occupy memory. PartSize*NumThreads",
+			},
+			&cli.BoolFlag{
 				Name:    "DisableMultipart",
 				EnvVars: []string{"DisableMultipart"},
 				Value:   true,
@@ -179,6 +184,7 @@ func action(cctx *cli.Context) error {
 		return err
 	}
 	NumThreads := cctx.Uint("NumThreads")
+	ConcurrentStreamParts := cctx.Bool("EnableMemCache")
 	DisableMultipart := cctx.Bool("DisableMultipart")
 	DisableContentSha256 := cctx.Bool("DisableContentSha256")
 	disableLookupDomain = cctx.Bool("disable_lookup")
@@ -318,7 +324,7 @@ func action(cctx *cli.Context) error {
 			defer reader.Close()
 
 			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
-			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: NumThreads, PartSize: PartSize, DisableMultipart: DisableMultipart, DisableContentSha256: DisableContentSha256})
+			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: NumThreads, PartSize: PartSize, ConcurrentStreamParts: ConcurrentStreamParts, DisableMultipart: DisableMultipart, DisableContentSha256: DisableContentSha256})
 			if err != nil {
 				log.Println("PutObject error:", err)
 				return

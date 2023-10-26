@@ -39,6 +39,7 @@ GLOBAL OPTIONS:
    --filelist value        specify the list to be migrated, one object per line [$filelist]
    --PartSize value        (default: "16MiB") [$PartSize]
    --NumThreads value      (default: 4) [$NumThreads]
+   --EnableMemCache        after turning it on, it will obviously occupy memory. PartSize*NumThreads (default: false) [$EnableMemCache]
    --DisableMultipart      (default: true) [$DisableMultipart]
    --DisableContentSha256  (default: true) [$DisableContentSha256]
    --concurrent value      (default: 10) [$concurrent]
@@ -51,10 +52,13 @@ GLOBAL OPTIONS:
    --help, -h              show help
    --version, -v           print the version
 ```
-以下参数仅在网络质量不好且文件较大时尝试调整使用；内网环境使用不调整则是最优。
+- 以下参数仅在网络质量不好且文件较大时尝试调整使用。
+- 理论内网环境使用不调整则是最优。
+- 如果数据大小大于目标集群part上限，需要开启分片上传。
 ```bash
    --PartSize value        (default: "16MiB") [$PartSize]
    --NumThreads value      (default: 4) [$NumThreads]
+   --EnableMemCache        after turning it on, it will obviously occupy memory. PartSize*NumThreads (default: false) [$EnableMemCache]
    --DisableMultipart      (default: true) [$DisableMultipart]
    --DisableContentSha256  (default: true) [$DisableContentSha256]
 ```
