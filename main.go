@@ -226,14 +226,6 @@ func action(cctx *cli.Context) error {
 	}
 
 	ctx := context.Background()
-	s3SrcClient, err := minio.New(nslookupShuf(src_endpoint), srcOptions)
-	if err != nil {
-		return err
-	}
-	s3DstClient, err := minio.New(nslookupShuf(dst_endpoint), dstOptions)
-	if err != nil {
-		return err
-	}
 
 	objectsCh := make(chan minio.ObjectInfo)
 	go func() {
@@ -252,6 +244,11 @@ func action(cctx *cli.Context) error {
 				return
 			}
 
+			s3SrcClient, err := minio.New(nslookupShuf(src_endpoint), srcOptions)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
 			// 每60分钟列出object，48小时内已经派发的任务不会重复派，48小时之前已经派发的任务还会重新派（如果文件已经在目标位置存在不会重新传输）
 			tmpCh := s3SrcClient.ListObjects(ctx, src_bucket, minio.ListObjectsOptions{
 				Prefix:    src_prefix,
@@ -282,18 +279,7 @@ func action(cctx *cli.Context) error {
 	for object := range objectsCh {
 		if object.Err != nil {
 			log.Println("ListObjects error:", object.Err)
-			return object.Err
-		}
-
-		// Check if object already exists in the destination bucket.
-		log.Printf("start StatObject %s in bucket %s\n", object.Key, dst_bucket)
-		_, err := s3DstClient.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
-		if err == nil {
-			log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 			continue
-		} else if !strings.Contains(err.Error(), "The specified key does not exist.") {
-			log.Println("StatObject error:", err)
-			return err
 		}
 
 		// Start a new worker.
@@ -314,6 +300,17 @@ func action(cctx *cli.Context) error {
 			dst, err := minio.New(nslookupShuf(dst_endpoint), dstOptions)
 			if err != nil {
 				log.Println(err)
+				return
+			}
+
+			// Check if object already exists in the destination bucket.
+			log.Printf("start StatObject %s in bucket %s\n", object.Key, dst_bucket)
+			_, err = src.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
+			if err == nil {
+				log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
+				return
+			} else if !strings.Contains(err.Error(), "The specified key does not exist.") {
+				log.Println("StatObject error:", err)
 				return
 			}
 
