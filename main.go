@@ -286,6 +286,7 @@ func action(cctx *cli.Context) error {
 		}
 
 		// Check if object already exists in the destination bucket.
+		log.Printf("start StatObject %s in bucket %s\n", object.Key, dst_bucket)
 		_, err := s3DstClient.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
 		if err == nil {
 			log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
@@ -316,6 +317,7 @@ func action(cctx *cli.Context) error {
 				return
 			}
 
+			log.Printf("start GetObject %s in bucket %s\n", object.Key, src_bucket)
 			reader, err := src.GetObject(ctx, src_bucket, object.Key, minio.GetObjectOptions{})
 			if err != nil {
 				log.Println("GetObject error:", err)
