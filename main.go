@@ -322,6 +322,12 @@ func action(cctx *cli.Context) error {
 			}
 			defer reader.Close()
 
+			info, err := reader.Stat()
+			if err != nil {
+				log.Println("Stat error:", err)
+			}
+			object.Size = info.Size
+
 			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
 			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: NumThreads, PartSize: PartSize, ConcurrentStreamParts: ConcurrentStreamParts, DisableMultipart: DisableMultipart, DisableContentSha256: DisableContentSha256})
 			if err != nil {
