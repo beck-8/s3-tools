@@ -51,9 +51,8 @@ func main() {
 				Hidden:   true,
 			},
 			&cli.StringFlag{
-				Name:     "src_prefix",
-				EnvVars:  []string{"src_prefix"},
-				Required: true,
+				Name:    "src_prefix",
+				EnvVars: []string{"src_prefix"},
 			},
 			&cli.StringFlag{
 				Name:     "dst_endpoint",
