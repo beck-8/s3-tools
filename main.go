@@ -305,7 +305,7 @@ func action(cctx *cli.Context) error {
 
 			// Check if object already exists in the destination bucket.
 			log.Printf("start StatObject %s in bucket %s\n", object.Key, dst_bucket)
-			_, err = src.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
+			_, err = dst.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
 			if err == nil {
 				log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 				return
