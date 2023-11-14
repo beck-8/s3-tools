@@ -1,7 +1,7 @@
 SHELL=/usr/bin/env bash
 .PHONY: all build run gotool clean help linux
 
-BINARY="s3-migrate"
+BINARY="s3-tools"
 
 all: gotool build
 
