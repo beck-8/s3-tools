@@ -293,8 +293,8 @@ func migrateAction(cctx *cli.Context) error {
 			}
 
 			// Check if object already exists in the destination bucket.
-			log.Printf("start StatObject %s in bucket %s\n", object.Key, dst_bucket)
-			_, err = dst.StatObject(ctx, dst_bucket, object.Key, minio.StatObjectOptions{})
+			log.Printf("start StatObject %s in bucket %s\n", path.Join(dst_prefix, object.Key), dst_bucket)
+			_, err = dst.StatObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), minio.StatObjectOptions{})
 			if err == nil {
 				log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 				return
@@ -317,7 +317,7 @@ func migrateAction(cctx *cli.Context) error {
 			}
 			object.Size = info.Size
 
-			log.Printf("start upload %s to bucket %s\n", object.Key, dst_bucket)
+			log.Printf("start upload %s to bucket %s\n", path.Join(dst_prefix, object.Key), dst_bucket)
 			_, err = dst.PutObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), reader, object.Size, minio.PutObjectOptions{NumThreads: NumThreads, PartSize: PartSize, ConcurrentStreamParts: ConcurrentStreamParts, DisableMultipart: DisableMultipart, DisableContentSha256: DisableContentSha256})
 			if err != nil {
 				log.Println("PutObject error:", err)
