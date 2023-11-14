@@ -7,4 +7,4 @@ export dst_prefix=dddd/
 export concurrent=5
 export filelist=download.txt
 
-../s3-migrate download
+../s3-tools download

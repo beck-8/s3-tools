@@ -125,7 +125,7 @@ export concurrent=1
 # export dst_uuid=
 # export rpc=
 # export token=
-./s3-migrate migrate
+./s3-tools migrate
 ```
 
 ## s3 迁移到 s3, 并修改unsealed 索引
@@ -154,7 +154,7 @@ export src_uuid=
 export dst_uuid=
 export rpc=
 export token=
-./s3-migrate migrate
+./s3-tools migrate
 ```
 ## 从http/https下载到S3
 ```
@@ -167,5 +167,5 @@ export dst_prefix=dddd/
 export concurrent=5
 export filelist=download.txt
 
-./s3-migrate download
+./s3-tools download
 ```
