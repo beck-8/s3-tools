@@ -19,4 +19,4 @@ export filelist=filelist.txt
 # export dst_uuid=
 # export rpc=
 # export token=
-./s3-migrate
+../s3-tools migrate

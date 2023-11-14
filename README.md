@@ -1,4 +1,4 @@
-# s3-migrate
+# s3-tools
 ## 支持功能
 > 使用域名可自动解析成IPV4随机访问。只允许域名访问的endpoint应使用`--disable_lookup`禁用此功能（公网S3服务大部分都需要加此参数，否则会返回乱七八糟的错误）
 
@@ -7,25 +7,40 @@
 - 支持文件列表迁移（--filelist）
 - 删除源数据（默认关闭）
 - 更改unsealed索引（默认关闭，启动需配置全参数）
+- 支持从 http/https 下载到s3
 
 ## Usage
 ```
-$ ./s3-migrate -h 
+$ ./s3-tools -h
 NAME:
-   s3-migrate - s3 to s3 tools
+   s3-tools - s3 tools
+
+USAGE:
+   s3-tools [global options] command [command options] [arguments...]
+
+VERSION:
+   0.0.1+git.0ff5473f14
+
+COMMANDS:
+   migrate   s3 to s3 migrate
+   download  from http[s] download to s3
+   help, h   Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h     show help
+   --version, -v  print the version
+```
+```
+$ ./s3-tools migrate -h
+NAME:
+   s3-tools migrate - s3 to s3 migrate
 
 USAGE:
    
    src_endpoint and dst_endpoint must use type scheme://domain[:port], example http://example.com[:80]
 
 
-VERSION:
-   0.0.1+git.d51ad9fe8a
-
-COMMANDS:
-   help, h  Shows a list of commands or help for one command
-
-GLOBAL OPTIONS:
+OPTIONS:
    --src_endpoint value     [$src_endpoint]
    --src_ak value           [$src_ak]
    --src_sk value           [$src_sk]
@@ -50,7 +65,6 @@ GLOBAL OPTIONS:
    --rpc value             miner rpc, http://localhost:2345/rpc/v0 [$rpc]
    --token value           miner admin token [$token]
    --help, -h              show help
-   --version, -v           print the version
 ```
 - 以下参数仅在网络质量不好且文件较大时尝试调整使用。
 - 理论内网环境使用不调整则是最优。
@@ -61,6 +75,29 @@ GLOBAL OPTIONS:
    --EnableMemCache        after turning it on, it will obviously occupy memory. PartSize*NumThreads (default: false) [$EnableMemCache]
    --DisableMultipart      (default: true) [$DisableMultipart]
    --DisableContentSha256  (default: true) [$DisableContentSha256]
+```
+```
+$ ./s3-tools download -h
+NAME:
+   s3-tools download - from http[s] download to s3
+
+USAGE:
+   s3-tools download [command options] [arguments...]
+
+OPTIONS:
+   --dst_endpoint value     [$dst_endpoint]
+   --dst_ak value           [$dst_ak]
+   --dst_sk value           [$dst_sk]
+   --dst_bucket value       [$dst_bucket]
+   --dst_prefix value       [$dst_prefix]
+   --filelist value        specify the list to be downloaded, one url per line [$filelist]
+   --PartSize value        (default: "16MiB") [$PartSize]
+   --NumThreads value      (default: 4) [$NumThreads]
+   --EnableMemCache        after turning it on, it will obviously occupy memory. PartSize*NumThreads (default: false) [$EnableMemCache]
+   --DisableMultipart      (default: true) [$DisableMultipart]
+   --DisableContentSha256  (default: true) [$DisableContentSha256]
+   --concurrent value      (default: 10) [$concurrent]
+   --help, -h              show help
 ```
 ## s3 迁移到 s3
 ```
@@ -88,7 +125,7 @@ export concurrent=1
 # export dst_uuid=
 # export rpc=
 # export token=
-./s3-migrate
+./s3-tools migrate
 ```
 
 ## s3 迁移到 s3, 并修改unsealed 索引
@@ -117,5 +154,18 @@ export src_uuid=
 export dst_uuid=
 export rpc=
 export token=
-./s3-migrate
+./s3-tools migrate
+```
+## 从http/https下载到S3
+```
+#!/usr/bin/env bash 
+export dst_endpoint=http://127.0.0.1:9000
+export dst_ak=minioadmin
+export dst_sk=minioadmin
+export dst_bucket=test
+export dst_prefix=dddd/
+export concurrent=5
+export filelist=download.txt
+
+./s3-tools download
 ```

@@ -1,4 +1,4 @@
-module s3-migrate
+module s3-tools
 
 go 1.19
 
