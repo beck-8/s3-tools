@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -20,6 +21,10 @@ import (
 var srcUuid, dstUuid, rpc, token string
 var disableLookupDomain bool
 var mutex = &sync.Mutex{}
+
+var transport = &randomRoundTripper{
+	resolver: net.DefaultResolver,
+}
 
 func nslookupShuf(input string) string {
 	if disableLookupDomain {
@@ -55,6 +60,31 @@ func nslookupShuf(input string) string {
 	} else {
 		return fmt.Sprintf("%s:%s", randomIP, port)
 	}
+}
+
+type randomRoundTripper struct {
+	resolver *net.Resolver
+}
+
+func (r *randomRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// 解析域名，获取所有 IPV4 地址
+	ips, err := r.resolver.LookupIP(context.Background(), "ip4", req.URL.Hostname())
+	if err != nil {
+		return nil, err
+	}
+
+	// 随机选择一个 IP 地址
+	selectedIP := ips[rand.Intn(len(ips))]
+
+	// 替换请求的 Host 字段为选定的 ip 或 ip:port
+	if port := req.URL.Port(); port == "" {
+		req.URL.Host = selectedIP.String()
+	} else {
+		req.URL.Host = selectedIP.String() + ":" + port
+	}
+
+	// 使用默认的 Transport 进行实际的请求
+	return http.DefaultTransport.RoundTrip(req)
 }
 
 // 根据object key（filename），在目标位置声明，在原位置删除

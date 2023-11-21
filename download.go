@@ -85,12 +85,6 @@ var download = &cli.Command{
 			EnvVars: []string{"concurrent"},
 			Value:   10,
 		},
-		&cli.BoolFlag{
-			Name:    "disable_lookup",
-			EnvVars: []string{"disable_lookup"},
-			Usage:   "disable lookup endpoint domain",
-			Hidden:  true,
-		},
 	},
 	Action: downloadAction,
 }
@@ -118,9 +112,10 @@ func downloadAction(cctx *cli.Context) error {
 	dst_endpoint := parsedDst.Host
 	dst_ssl := parsedDst.Scheme == "https"
 	dstOptions := &minio.Options{
-		Creds:  credentials.NewStaticV4(cctx.String("dst_ak"), cctx.String("dst_sk"), ""),
-		Secure: dst_ssl,
-		Region: dst_region,
+		Creds:     credentials.NewStaticV4(cctx.String("dst_ak"), cctx.String("dst_sk"), ""),
+		Secure:    dst_ssl,
+		Region:    dst_region,
+		Transport: transport,
 	}
 
 	ctx := context.Background()
@@ -153,7 +148,7 @@ func downloadAction(cctx *cli.Context) error {
 			// 提取路径的最后一部分
 			objectName := path.Base(parsedURL.Path)
 
-			dst, err := minio.New(nslookupShuf(dst_endpoint), dstOptions)
+			dst, err := minio.New(dst_endpoint, dstOptions)
 			if err != nil {
 				log.Println(err)
 				return

@@ -126,12 +126,6 @@ var migrate = &cli.Command{
 			EnvVars: []string{"remove"},
 			Usage:   "delete after completion",
 		},
-		&cli.BoolFlag{
-			Name:    "disable_lookup",
-			EnvVars: []string{"disable_lookup"},
-			Usage:   "disable lookup endpoint domain",
-			Hidden:  true,
-		},
 		&cli.StringFlag{
 			Name:    "src_uuid",
 			EnvVars: []string{"src_uuid"},
@@ -197,9 +191,10 @@ func migrateAction(cctx *cli.Context) error {
 	src_endpoint := parsedSrc.Host
 	src_ssl := parsedSrc.Scheme == "https"
 	srcOptions := &minio.Options{
-		Creds:  credentials.NewStaticV4(cctx.String("src_ak"), cctx.String("src_sk"), ""),
-		Secure: src_ssl,
-		Region: src_region,
+		Creds:     credentials.NewStaticV4(cctx.String("src_ak"), cctx.String("src_sk"), ""),
+		Secure:    src_ssl,
+		Region:    src_region,
+		Transport: transport,
 	}
 
 	parsedDst, err := url.Parse(cctx.String("dst_endpoint"))
@@ -209,9 +204,10 @@ func migrateAction(cctx *cli.Context) error {
 	dst_endpoint := parsedDst.Host
 	dst_ssl := parsedDst.Scheme == "https"
 	dstOptions := &minio.Options{
-		Creds:  credentials.NewStaticV4(cctx.String("dst_ak"), cctx.String("dst_sk"), ""),
-		Secure: dst_ssl,
-		Region: dst_region,
+		Creds:     credentials.NewStaticV4(cctx.String("dst_ak"), cctx.String("dst_sk"), ""),
+		Secure:    dst_ssl,
+		Region:    dst_region,
+		Transport: transport,
 	}
 
 	ctx := context.Background()
@@ -233,7 +229,7 @@ func migrateAction(cctx *cli.Context) error {
 				return
 			}
 
-			s3SrcClient, err := minio.New(nslookupShuf(src_endpoint), srcOptions)
+			s3SrcClient, err := minio.New(src_endpoint, srcOptions)
 			if err != nil {
 				log.Fatal(err)
 				return
@@ -280,13 +276,13 @@ func migrateAction(cctx *cli.Context) error {
 				<-workerCh // Remove from the worker queue.
 			}()
 
-			src, err := minio.New(nslookupShuf(src_endpoint), srcOptions)
+			src, err := minio.New(src_endpoint, srcOptions)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
-			dst, err := minio.New(nslookupShuf(dst_endpoint), dstOptions)
+			dst, err := minio.New(dst_endpoint, dstOptions)
 			if err != nil {
 				log.Println(err)
 				return
