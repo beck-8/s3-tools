@@ -10,6 +10,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"sync"
@@ -185,4 +187,19 @@ func deleteOldEntries(m map[string]time.Time, hours int) {
 			delete(m, key)
 		}
 	}
+}
+
+// listFiles 递归列出目录下的所有文件
+func listFiles(dir string) ([]string, error) {
+	var list []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			list = append(list, path)
+		}
+		return nil
+	})
+	return list, err
 }

@@ -8,6 +8,7 @@
 - 删除源数据（默认关闭）
 - 更改unsealed索引（默认关闭，启动需配置全参数）
 - 支持从 http/https 下载到s3
+- 支持从本地文件系统上传文件到 s3
 
 ## Usage
 ```
@@ -168,4 +169,19 @@ export concurrent=5
 export filelist=download.txt
 
 ./s3-tools download
+```
+## 从本地文件系统上传文件到 s3
+```
+#!/usr/bin/env bash 
+export dst_endpoint=http://127.0.0.1:9000
+export dst_ak=minioadmin
+export dst_sk=minioadmin
+export dst_bucket=test
+export dst_prefix=
+export concurrent=5
+export dir=./
+# or
+# export filelist=upload.txt
+
+../s3-tools upload
 ```

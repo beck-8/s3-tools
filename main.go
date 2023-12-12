@@ -15,6 +15,7 @@ func main() {
 		Commands: []*cli.Command{
 			migrate,
 			download,
+			upload,
 		},
 	}
 
