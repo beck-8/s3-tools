@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -196,6 +197,11 @@ func listFiles(dir string) ([]string, error) {
 		if err != nil {
 			return err
 		}
+		// 忽略隐藏文件和隐藏目录
+		if strings.HasPrefix(path, ".") || strings.HasPrefix(filepath.Base(path), ".") {
+			return nil
+		}
+
 		if !info.IsDir() {
 			list = append(list, path)
 		}
