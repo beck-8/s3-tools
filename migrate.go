@@ -243,6 +243,7 @@ func migrateAction(cctx *cli.Context) error {
 				if _, ok := alreadyJobs[obj.Key]; ok {
 					continue
 				}
+				fmt.Println(obj.Key)
 				objectsCh <- obj
 				alreadyJobs[obj.Key] = time.Now()
 			}
@@ -290,15 +291,27 @@ func migrateAction(cctx *cli.Context) error {
 
 			// Check if object already exists in the destination bucket.
 			log.Printf("start StatObject %s in bucket %s\n", path.Join(dst_prefix, object.Key), dst_bucket)
-			r, _ := dst.GetObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), minio.StatObjectOptions{})
-			_, err = r.Stat()
-			if err == nil {
+			// r, _ := dst.GetObject(ctx, dst_bucket, path.Join(dst_prefix, object.Key), minio.StatObjectOptions{})
+			keys := dst.ListObjects(ctx, dst_bucket, minio.ListObjectsOptions{
+				Prefix: path.Join(dst_prefix, object.Key),
+			})
+			var yes bool
+			for range keys {
+				yes = true
+				break
+			}
+
+			if yes {
 				log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 				return
-			} else if !strings.Contains(err.Error(), "The specified key does not exist.") {
-				log.Println("StatObject error:", err)
-				return
 			}
+			// if err == nil {
+			// 	log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
+			// 	return
+			// } else if !strings.Contains(err.Error(), "The specified key does not exist.") {
+			// 	log.Println("StatObject error:", err)
+			// 	return
+			// }
 
 			log.Printf("start GetObject %s in bucket %s\n", object.Key, src_bucket)
 			reader, err := src.GetObject(ctx, src_bucket, object.Key, minio.GetObjectOptions{})
