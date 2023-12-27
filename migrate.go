@@ -295,16 +295,14 @@ func migrateAction(cctx *cli.Context) error {
 			keys := dst.ListObjects(ctx, dst_bucket, minio.ListObjectsOptions{
 				Prefix: path.Join(dst_prefix, object.Key),
 			})
-			var yes bool
-			for range keys {
-				yes = true
-				break
-			}
 
-			if yes {
+			select {
+			case <-keys:
 				log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 				return
+			default:
 			}
+
 			// if err == nil {
 			// 	log.Printf("object %s already exists in destination bucket %s\n", object.Key, dst_bucket)
 			// 	return
