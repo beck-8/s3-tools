@@ -310,6 +310,7 @@ func migrateAction(cctx *cli.Context) error {
 			info, err := reader.Stat()
 			if err != nil {
 				log.Println("Stat error:", err)
+				return
 			}
 			object.Size = info.Size
 
