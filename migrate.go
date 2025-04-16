@@ -52,6 +52,12 @@ var migrate = &cli.Command{
 			EnvVars: []string{"src_prefix"},
 		},
 		&cli.StringFlag{
+			Name:    "src_bucket_lookup",
+			EnvVars: []string{"src_bucket_lookup"},
+			Value:   "auto",
+			Usage:   "bucket lookup type: dns, path, auto",
+		},
+		&cli.StringFlag{
 			Name:     "dst_endpoint",
 			EnvVars:  []string{"dst_endpoint"},
 			Required: true,
@@ -80,6 +86,12 @@ var migrate = &cli.Command{
 		&cli.StringFlag{
 			Name:    "dst_prefix",
 			EnvVars: []string{"dst_prefix"},
+		},
+		&cli.StringFlag{
+			Name:    "dst_bucket_lookup",
+			EnvVars: []string{"dst_bucket_lookup"},
+			Value:   "auto",
+			Usage:   "bucket lookup type: dns, path, auto",
 		},
 		&cli.StringFlag{
 			Name:    "filelist",
@@ -111,6 +123,7 @@ var migrate = &cli.Command{
 			EnvVars: []string{"DisableContentSha256"},
 			Value:   true,
 		},
+
 		&cli.IntFlag{
 			Name:    "concurrent",
 			EnvVars: []string{"concurrent"},
@@ -197,6 +210,19 @@ func migrateAction(cctx *cli.Context) error {
 		Transport: transport,
 	}
 
+	// Set bucket lookup type based on the flag
+	bucketLookup := cctx.String("src_bucket_lookup")
+	switch bucketLookup {
+	case "dns":
+		srcOptions.BucketLookup = minio.BucketLookupDNS
+	case "path":
+		srcOptions.BucketLookup = minio.BucketLookupPath
+	case "auto":
+		srcOptions.BucketLookup = minio.BucketLookupAuto
+	default:
+		return fmt.Errorf("invalid bucket_lookup value: %s, must be one of: dns, path, auto", bucketLookup)
+	}
+
 	parsedDst, err := url.Parse(cctx.String("dst_endpoint"))
 	if err != nil {
 		return err
@@ -208,6 +234,19 @@ func migrateAction(cctx *cli.Context) error {
 		Secure:    dst_ssl,
 		Region:    dst_region,
 		Transport: transport,
+	}
+
+	// Set bucket lookup type based on the flag
+	bucketLookup = cctx.String("dst_bucket_lookup")
+	switch bucketLookup {
+	case "dns":
+		dstOptions.BucketLookup = minio.BucketLookupDNS
+	case "path":
+		dstOptions.BucketLookup = minio.BucketLookupPath
+	case "auto":
+		dstOptions.BucketLookup = minio.BucketLookupAuto
+	default:
+		return fmt.Errorf("invalid bucket_lookup value: %s, must be one of: dns, path, auto", bucketLookup)
 	}
 
 	ctx := context.Background()

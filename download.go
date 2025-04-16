@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -49,6 +50,12 @@ var download = &cli.Command{
 		&cli.StringFlag{
 			Name:    "dst_prefix",
 			EnvVars: []string{"dst_prefix"},
+		},
+		&cli.StringFlag{
+			Name:    "dst_bucket_lookup",
+			EnvVars: []string{"dst_bucket_lookup"},
+			Value:   "auto",
+			Usage:   "bucket lookup type: dns, path, auto",
 		},
 		&cli.StringFlag{
 			Name:    "filelist",
@@ -116,6 +123,19 @@ func downloadAction(cctx *cli.Context) error {
 		Secure:    dst_ssl,
 		Region:    dst_region,
 		Transport: transport,
+	}
+
+	// Set bucket lookup type based on the flag
+	bucketLookup := cctx.String("dst_bucket_lookup")
+	switch bucketLookup {
+	case "dns":
+		dstOptions.BucketLookup = minio.BucketLookupDNS
+	case "path":
+		dstOptions.BucketLookup = minio.BucketLookupPath
+	case "auto":
+		dstOptions.BucketLookup = minio.BucketLookupAuto
+	default:
+		return fmt.Errorf("invalid bucket_lookup value: %s, must be one of: dns, path, auto", bucketLookup)
 	}
 
 	ctx := context.Background()
