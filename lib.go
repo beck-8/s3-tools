@@ -70,6 +70,13 @@ type randomRoundTripper struct {
 }
 
 func (r *randomRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	// 不使用随机IP请求，使用默认的 Transport
+	if os.Getenv("USE_RANDOM_IP") == "" {
+		return http.DefaultTransport.RoundTrip(req)
+	}
+
+	// 下方主要是为了局域网内传输加速使用
+	// 如果用了随机IP，还是https的endpoint，会有证书问题
 	// 解析域名，获取所有 IPV4 地址
 	ips, err := r.resolver.LookupIP(context.Background(), "ip4", req.URL.Hostname())
 	if err != nil {
