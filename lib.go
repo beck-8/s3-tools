@@ -81,7 +81,11 @@ func (r *randomRoundTripper) RoundTrip(req *http.Request) (*http.Response, error
 
 	// 替换请求的 Host 字段为选定的 ip 或 ip:port
 	if port := req.URL.Port(); port == "" {
-		req.URL.Host = selectedIP.String()
+		if req.URL.Scheme == "https" {
+			req.URL.Host = selectedIP.String() + ":443"
+		} else {
+			req.URL.Host = selectedIP.String() + ":80"
+		}
 	} else {
 		req.URL.Host = selectedIP.String() + ":" + port
 	}
